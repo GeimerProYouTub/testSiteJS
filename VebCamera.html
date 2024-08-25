@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Фото с вебкамеры</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: black;
+        }
+        img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Холст -->
+<canvas id="canvas" style="display:none;"></canvas>
+
+<!-- Изображение -->
+<img id="photo" alt="Снимок будет здесь">
+
+<script>
+    // Получение элементов
+    const canvas = document.getElementById('canvas');
+    const photo = document.getElementById('photo');
+    const context = canvas.getContext('2d');
+
+    // Запрос доступа к вебкамере
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(function(stream) {
+            // Создаем видео элемент, но не добавляем его в DOM
+            const video = document.createElement('video');
+            video.srcObject = stream;
+
+            // Ожидание загрузки видео перед созданием снимка
+            video.addEventListener('loadeddata', function() {
+                // Установка размеров холста в соответствии с видео
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+
+                // Делаем снимок через небольшую задержку для корректной загрузки
+                setTimeout(function() {
+                    // Рисуем изображение на холсте
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    // Преобразуем в data URL и отображаем на странице
+                    const dataURL = canvas.toDataURL('image/png');
+                    photo.src = dataURL;
+
+                    // Останавливаем видеопоток
+                    stream.getTracks().forEach(track => track.stop());
+                }, 100); // Задержка 0.1 секунды
+            });
+
+            // Начало воспроизведения видео (хотя его и не видно)
+            video.play();
+        })
+        .catch(function(err) {
+            console.log("Ошибка доступа к вебкамере: " + err);
+        });
+</script>
+
+</body>
+</html>
